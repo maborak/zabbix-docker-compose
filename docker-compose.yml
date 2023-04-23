@@ -1,0 +1,147 @@
+version: "3"
+
+services:
+  traefik:
+    image: traefik:latest
+    restart: always
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+      - ./conf/traefik/letsencrypt:/letsencrypt
+      - ./logs/traefik/system.log:/system.log
+      - ./logs/traefik/access.log:/access.log
+    ports:
+      - "${BIND_IP:-0.0.0.0}:80:80"
+      - "${BIND_IP:-0.0.0.0}:443:443"
+    command:
+      - "--log.level=DEBUG"
+      - "--log.filePath=system.log"
+      - "--accesslog=true"
+      - "--accesslog.filepath=access.log"
+      - "--accesslog.bufferingsize=100"
+      - "--accesslog.format=json"
+      - "--accesslog.fields.defaultmode=keep"
+      - "--accesslog.fields.names.ClientUsername=drop"
+      - "--accesslog.fields.headers.defaultmode=drop"
+      - "--accesslog.fields.headers.names.User-Agent=redact"
+      - "--accesslog.fields.headers.names.Authorization=drop"
+      - "--accesslog.fields.headers.names.Content-Type=keep"
+      - "--api=true"
+      - "--api.dashboard=true"
+      - "--ping=true"
+      - "--providers.docker=true"
+      - "--providers.docker.exposedbydefault=false"
+      - "--providers.docker.constraints=Label(`traefik.server`,`${CONTEXT:-prometheus}`)"
+      - "--entrypoints.web.address=:80"
+      - "--entrypoints.websecure.address=:443"
+      - "--certificatesResolvers.le.acme.email=maborak@maborak.com"
+      - "--certificatesResolvers.le.acme.storage=/letsencrypt/acme.json"
+      - "--certificatesResolvers.le.acme.tlsChallenge=false"
+      - "--certificatesResolvers.le.acme.httpChallenge=false"
+      - "--certificatesResolvers.le.acme.httpChallenge.entryPoint=web"
+      #- "--certificatesresolvers.le.acme.caserver=https://acme-staging-v02.api.letsencrypt.org/directory"
+      - "--certificatesresolvers.le.acme.caserver=https://acme-v02.api.letsencrypt.org/directory"
+      - "--certificatesResolvers.le.acme.dnsChallenge=true"
+      - "--certificatesResolvers.le.acme.dnsChallenge.provider=cloudflare"
+      - "--entrypoints.traefik.address=:9090" #change dashboard api port internally
+    environment:
+      - CLOUDFLARE_EMAIL=${CLOUDFLARE_EMAIL:-some@some.com}
+      - CLOUDFLARE_DNS_API_TOKEN=${CLOUDFLARE_DNS_API_TOKEN:-123}
+    labels:
+      - "traefik.server=${CONTEXT:-prometheus}"
+      - "traefik.enable=true"
+      #Dashboard over HTTPS
+      - "traefik.http.routers.${CONTEXT:-prometheus}dashboard.entryPoints=websecure"
+      - "traefik.http.routers.${CONTEXT:-prometheus}dashboard.tls=true"
+      - "traefik.http.routers.${CONTEXT:-prometheus}dashboard.tls.certresolver=le"
+      #- "traefik.http.routers.${CONTEXT:-prometheus}dashboard.rule=PathPrefix(`/api`) || PathPrefix(`/dashboard`)"
+      - "traefik.http.routers.${CONTEXT:-prometheus}dashboard.rule=Host(`${DOMAIN_ROUTER:-router.prometheus.local}`)"
+      - "traefik.http.routers.${CONTEXT:-prometheus}dashboard.service=api@internal"
+      - "traefik.http.services.${CONTEXT:-prometheus}dashboard.loadbalancer.server.port=9090"
+      - "traefik.http.routers.${CONTEXT:-prometheus}dashboard.middlewares=${CONTEXT:-prometheus}dashboard-auth"
+      - "traefik.http.middlewares.${CONTEXT:-prometheus}dashboard-auth.basicauth.users=maborak:$$apr1$$luvsw9qm$$rAuZFNPtah4SY6YkGAUMR/" #todos los signos dolar deben ser doble
+      #Dashboard over HTTP
+      - "traefik.http.routers.${CONTEXT:-prometheus}dashboard_http.entrypoints=web"
+      - "traefik.http.routers.${CONTEXT:-prometheus}dashboard_http.rule=Host(`${DOMAIN_ROUTER:-grafana.local}`)"
+      - "traefik.http.routers.${CONTEXT:-prometheus}dashboard_http.service=api@internal"
+      - "traefik.http.routers.${CONTEXT:-prometheus}dashboard_http.middlewares=${CONTEXT:-prometheus}dashboard_http-auth"
+      - "traefik.http.services.${CONTEXT:-prometheus}dashboard_http.loadbalancer.server.port=9090"
+      - "traefik.http.middlewares.${CONTEXT:-prometheus}dashboard_http-auth.basicauth.users=maborak:$$apr1$$luvsw9qm$$rAuZFNPtah4SY6YkGAUMR/" #todos los signos dolar deben ser doble
+  zabbix_server:
+    build:
+      context: ./build/zabbix-server
+    restart: always
+    volumes:
+      - ./conf/zabbix_server.conf:/var/lib/zabbix/etc/zabbix_server.conf
+  zabbix_ui:
+    build:
+      context: ./build/zabbix-ui
+    restart: always
+    labels:
+      - "traefik.server=${CONTEXT:-prometheus}"
+      - "traefik.enable=true"
+      # HTTPS
+      - "traefik.http.routers.${CONTEXT:-prometheus}zabbix_ui_https.rule=Host(`${DOMAIN_UI:-grafana.local}`)"
+      - "traefik.http.routers.${CONTEXT:-prometheus}zabbix_ui_https.entrypoints=websecure"
+      - "traefik.http.routers.${CONTEXT:-prometheus}zabbix_ui_https.tls=true"
+      - "traefik.http.routers.${CONTEXT:-prometheus}zabbix_ui_https.tls.certresolver=le"
+      - "traefik.http.routers.${CONTEXT:-prometheus}zabbix_ui_https.middlewares=${CONTEXT:-prometheus}zabbix_ui_https-api_headers"
+      - "traefik.http.middlewares.${CONTEXT:-prometheus}zabbix_ui_https-api_headers.headers.customresponseheaders.server=maborak"
+      - "traefik.http.middlewares.${CONTEXT:-prometheus}zabbix_ui_https-api_headers.headers.customresponseheaders.serving=https"
+      - "traefik.http.middlewares.${CONTEXT:-prometheus}zabbix_ui_https-api_headers.headers.accesscontrolallowmethods=GET,OPTIONS,PUT"
+      - "traefik.http.middlewares.${CONTEXT:-prometheus}zabbix_ui_https-api_headers.headers.accesscontrolalloworiginlist=*"
+      - "traefik.http.middlewares.${CONTEXT:-prometheus}zabbix_ui_https-api_headers.headers.addvaryheader=true"
+      # HTTP
+      - "traefik.http.routers.${CONTEXT:-prometheus}zabbix_ui_http.rule=Host(`${DOMAIN_UI:-grafana.local}`)"
+      - "traefik.http.routers.${CONTEXT:-prometheus}zabbix_ui_http.entrypoints=web"
+      - "traefik.http.services.${CONTEXT:-prometheus}zabbix_ui_http.loadbalancer.server.port=8080"
+      - "traefik.http.routers.${CONTEXT:-prometheus}zabbix_ui_https.middlewares=${CONTEXT:-prometheus}zabbix_ui_http-api_headers"
+      - "traefik.http.middlewares.${CONTEXT:-prometheus}zabbix_ui_http-api_headers.headers.customresponseheaders.server=maborak"
+      - "traefik.http.middlewares.${CONTEXT:-prometheus}zabbix_ui_http-api_headers.headers.customresponseheaders.serving=http"
+      - "traefik.http.middlewares.${CONTEXT:-prometheus}zabbix_ui_http-api_headers.headers.accesscontrolallowmethods=GET,OPTIONS,PUT"
+      - "traefik.http.middlewares.${CONTEXT:-prometheus}zabbix_ui_http-api_headers.headers.accesscontrolalloworiginlist=*"
+      - "traefik.http.middlewares.${CONTEXT:-prometheus}zabbix_ui_http-api_headers.headers.addvaryheader=true"
+      - "traefik.http.middlewares.${CONTEXT:-prometheus}zabbix_ui_http.compress=true"
+    volumes:
+      - ./conf/php_extra.ini:/etc/php8/conf.d/php_extra.ini
+  zabbix_db:
+    build:
+      context: ./build/zabbix-db
+    command: --default-authentication-plugin=mysql_native_password --character-set-server=utf8mb4 --collation-server=utf8mb4_unicode_ci
+    restart: always
+    cap_add:
+      - SYS_NICE
+    environment:
+      MYSQL_ROOT_PASSWORD: zabbix_root
+      MYSQL_DATABASE: zabbix
+      MYSQL_USER: zabbix
+      MYSQL_PASSWORD: zabbix
+  adminer:
+    image: adminer
+    restart: always
+    labels:
+      - "traefik.server=${CONTEXT:-prometheus}"
+      - "traefik.enable=true"
+      # HTTPS
+      - "traefik.http.routers.${CONTEXT:-prometheus}zabbix_pma_https.rule=Host(`${DOMAIN_PMA:-grafana.local}`)"
+      - "traefik.http.routers.${CONTEXT:-prometheus}zabbix_pma_https.entrypoints=websecure"
+      - "traefik.http.routers.${CONTEXT:-prometheus}zabbix_pma_https.tls=true"
+      - "traefik.http.routers.${CONTEXT:-prometheus}zabbix_pma_https.tls.certresolver=le"
+      - "traefik.http.routers.${CONTEXT:-prometheus}zabbix_pma_https.middlewares=${CONTEXT:-prometheus}zabbix_pma_https-api_headers"
+      - "traefik.http.middlewares.${CONTEXT:-prometheus}zabbix_pma_https-api_headers.headers.customresponseheaders.server=maborak"
+      - "traefik.http.middlewares.${CONTEXT:-prometheus}zabbix_pma_https-api_headers.headers.customresponseheaders.serving=https"
+      - "traefik.http.middlewares.${CONTEXT:-prometheus}zabbix_pma_https-api_headers.headers.accesscontrolallowmethods=GET,OPTIONS,PUT"
+      - "traefik.http.middlewares.${CONTEXT:-prometheus}zabbix_pma_https-api_headers.headers.accesscontrolalloworiginlist=*"
+      - "traefik.http.middlewares.${CONTEXT:-prometheus}zabbix_pma_https-api_headers.headers.addvaryheader=true"
+      # HTTP
+      - "traefik.http.routers.${CONTEXT:-prometheus}zabbix_pma_http.rule=Host(`${DOMAIN_PMA:-grafana.local}`)"
+      - "traefik.http.routers.${CONTEXT:-prometheus}zabbix_pma_http.entrypoints=web"
+      - "traefik.http.services.${CONTEXT:-prometheus}zabbix_pma_http.loadbalancer.server.port=8080"
+      - "traefik.http.routers.${CONTEXT:-prometheus}zabbix_pma_https.middlewares=${CONTEXT:-prometheus}zabbix_pma_http-api_headers"
+      - "traefik.http.middlewares.${CONTEXT:-prometheus}zabbix_pma_http-api_headers.headers.customresponseheaders.server=maborak"
+      - "traefik.http.middlewares.${CONTEXT:-prometheus}zabbix_pma_http-api_headers.headers.customresponseheaders.serving=http"
+      - "traefik.http.middlewares.${CONTEXT:-prometheus}zabbix_pma_http-api_headers.headers.accesscontrolallowmethods=GET,OPTIONS,PUT"
+      - "traefik.http.middlewares.${CONTEXT:-prometheus}zabbix_pma_http-api_headers.headers.accesscontrolalloworiginlist=*"
+      - "traefik.http.middlewares.${CONTEXT:-prometheus}zabbix_pma_http-api_headers.headers.addvaryheader=true"
+      - "traefik.http.middlewares.${CONTEXT:-prometheus}zabbix_pma_http.compress=true"
+volumes:
+  zabbix-server-data:
