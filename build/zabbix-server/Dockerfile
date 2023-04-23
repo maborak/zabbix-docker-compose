@@ -1,6 +1,6 @@
-FROM maborak/zabbix6-base-git AS base
+FROM maborak/${ZABBIX_BASE:-zabbix6-base} AS base
 
-FROM ubuntu:21.10
+FROM ubuntu:22.10
 WORKDIR /var/lib/zabbix/
 COPY --from=base /var/lib/zabbix/ ./
 ARG DEBIAN_FRONTEND=noninteractive
@@ -19,7 +19,7 @@ RUN apt-get install -y \
     libpcre3 \
     libsnmp-dev \
     libssh2-1-dev \
-    libssl1.1 \
+    libssl-dev \
     libxml2 \
     mysql-client \
     snmp-mibs-downloader \

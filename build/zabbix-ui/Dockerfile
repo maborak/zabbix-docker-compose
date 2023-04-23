@@ -1,16 +1,17 @@
-FROM maborak/zabbix6-base-git AS base
+FROM maborak/${ZABBIX_BASE:-zabbix6-base} AS base
 
-FROM trafex/php-nginx
+FROM trafex/php-nginx:latest
 WORKDIR /var/www/html
 COPY --from=base /var/lib/zabbix_ui/ ./
 USER root
 RUN apk --no-cache add \
-  php8-bcmath \
-  php8-xml \
-  php8-sockets \
-  php8-xmlwriter \
-  php8-gettext \
-  php8-ldap \
-  php8-zip
+  php81-bcmath \
+  php81-xml \
+  php81-sockets \
+  php81-xmlwriter \
+  php81-gettext \
+  php81-ldap \
+  php81-zip
+RUN chown -Rf nobody:nobody /var/www/html/conf/
 USER nobody
 

@@ -1,4 +1,4 @@
-FROM maborak/zabbix6-base-git AS base
+FROM maborak/${ZABBIX_BASE:-zabbix6-base} AS base
 
 FROM mysql
 WORKDIR /docker-entrypoint-initdb.d/

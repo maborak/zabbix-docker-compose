@@ -18,7 +18,7 @@ services:
       - "--accesslog=true"
       - "--accesslog.filepath=access.log"
       - "--accesslog.bufferingsize=100"
-      - "--accesslog.format=json"
+      #- "--accesslog.format=json"
       - "--accesslog.fields.defaultmode=keep"
       - "--accesslog.fields.names.ClientUsername=drop"
       - "--accesslog.fields.headers.defaultmode=drop"
@@ -36,12 +36,12 @@ services:
       - "--certificatesResolvers.le.acme.email=maborak@maborak.com"
       - "--certificatesResolvers.le.acme.storage=/letsencrypt/acme.json"
       - "--certificatesResolvers.le.acme.tlsChallenge=false"
-      - "--certificatesResolvers.le.acme.httpChallenge=false"
+      - "--certificatesResolvers.le.acme.httpChallenge=true"
       - "--certificatesResolvers.le.acme.httpChallenge.entryPoint=web"
-      #- "--certificatesresolvers.le.acme.caserver=https://acme-staging-v02.api.letsencrypt.org/directory"
-      - "--certificatesresolvers.le.acme.caserver=https://acme-v02.api.letsencrypt.org/directory"
-      - "--certificatesResolvers.le.acme.dnsChallenge=true"
-      - "--certificatesResolvers.le.acme.dnsChallenge.provider=cloudflare"
+      - "--certificatesresolvers.le.acme.caserver=https://acme-staging-v02.api.letsencrypt.org/directory"
+      #- "--certificatesresolvers.le.acme.caserver=https://acme-v02.api.letsencrypt.org/directory"
+      #- "--certificatesResolvers.le.acme.dnsChallenge=true"
+      #- "--certificatesResolvers.le.acme.dnsChallenge.provider=cloudflare"
       - "--entrypoints.traefik.address=:9090" #change dashboard api port internally
     environment:
       - CLOUDFLARE_EMAIL=${CLOUDFLARE_EMAIL:-some@some.com}
@@ -102,7 +102,7 @@ services:
       - "traefik.http.middlewares.${CONTEXT:-prometheus}zabbix_ui_http-api_headers.headers.addvaryheader=true"
       - "traefik.http.middlewares.${CONTEXT:-prometheus}zabbix_ui_http.compress=true"
     volumes:
-      - ./conf/php_extra.ini:/etc/php8/conf.d/php_extra.ini
+      - ./conf/php_extra.ini:/etc/php81/conf.d/php_extra.ini
   zabbix_db:
     build:
       context: ./build/zabbix-db
