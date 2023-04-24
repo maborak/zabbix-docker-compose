@@ -1,4 +1,5 @@
-FROM maborak/${ZABBIX_BASE:-zabbix6-base} AS base
+ARG ZABBIX_BASE
+FROM maborak/${ZABBIX_BASE:-zabbix-base} AS base
 
 FROM ubuntu:22.10
 WORKDIR /var/lib/zabbix/
@@ -19,6 +20,7 @@ RUN apt-get install -y \
     libpcre3 \
     libsnmp-dev \
     libssh2-1-dev \
+    libevent-pthreads-2.1-7 \
     libssl-dev \
     libxml2 \
     mysql-client \

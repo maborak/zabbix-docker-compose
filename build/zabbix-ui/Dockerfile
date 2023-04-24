@@ -1,4 +1,5 @@
-FROM maborak/${ZABBIX_BASE:-zabbix6-base} AS base
+ARG ZABBIX_BASE
+FROM maborak/${ZABBIX_BASE:-zabbix-base} AS base
 
 FROM trafex/php-nginx:latest
 WORKDIR /var/www/html

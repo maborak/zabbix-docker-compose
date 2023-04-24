@@ -66,14 +66,20 @@ services:
       - "traefik.http.services.${CONTEXT:-prometheus}dashboard_http.loadbalancer.server.port=9090"
       - "traefik.http.middlewares.${CONTEXT:-prometheus}dashboard_http-auth.basicauth.users=maborak:$$apr1$$luvsw9qm$$rAuZFNPtah4SY6YkGAUMR/" #todos los signos dolar deben ser doble
   zabbix_server:
+    env_file: .env
     build:
       context: ./build/zabbix-server
+      args:
+        ZABBIX_BASE: ${ZABBIX_BASE:-zabbix-base}
     restart: always
     volumes:
       - ./conf/zabbix_server.conf:/var/lib/zabbix/etc/zabbix_server.conf
   zabbix_ui:
+    env_file: .env
     build:
       context: ./build/zabbix-ui
+      args:
+        ZABBIX_BASE: ${ZABBIX_BASE:-zabbix-base}
     restart: always
     labels:
       - "traefik.server=${CONTEXT:-prometheus}"
@@ -103,8 +109,11 @@ services:
     volumes:
       - ./conf/php_extra.ini:/etc/php81/conf.d/php_extra.ini
   zabbix_db:
+    env_file: .env
     build:
       context: ./build/zabbix-db
+      args:
+        ZABBIX_BASE: ${ZABBIX_BASE:-zabbix-base}
     command: --default-authentication-plugin=mysql_native_password --character-set-server=utf8mb4 --collation-server=utf8mb4_unicode_ci
     restart: always
     cap_add:
