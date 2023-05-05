@@ -1,7 +1,7 @@
 version: "3"
 
 services:
-  traefik:
+  router:
     image: traefik:latest
     restart: always
     volumes:
@@ -65,7 +65,7 @@ services:
       - "traefik.http.routers.${CONTEXT:-prometheus}dashboard_http.middlewares=${CONTEXT:-prometheus}dashboard_http-auth"
       - "traefik.http.services.${CONTEXT:-prometheus}dashboard_http.loadbalancer.server.port=9090"
       - "traefik.http.middlewares.${CONTEXT:-prometheus}dashboard_http-auth.basicauth.users=maborak:$$apr1$$luvsw9qm$$rAuZFNPtah4SY6YkGAUMR/" #todos los signos dolar deben ser doble
-  zabbix_server:
+  server:
     env_file: .env
     build:
       context: ./build/zabbix-server
@@ -74,7 +74,7 @@ services:
     restart: always
     volumes:
       - ./conf/zabbix_server.conf:/var/lib/zabbix/etc/zabbix_server.conf
-  zabbix_ui:
+  ui:
     env_file: .env
     build:
       context: ./build/zabbix-ui
@@ -108,7 +108,8 @@ services:
       - "traefik.http.middlewares.${CONTEXT:-prometheus}zabbix_ui_http.compress=true"
     volumes:
       - ./conf/php_extra.ini:/etc/php81/conf.d/php_extra.ini
-  zabbix_db:
+      - ./conf/zabbix.conf.php:/var/www/html/conf/zabbix.conf.php
+  db:
     env_file: .env
     build:
       context: ./build/zabbix-db
@@ -123,7 +124,9 @@ services:
       MYSQL_DATABASE: zabbix
       MYSQL_USER: zabbix
       MYSQL_PASSWORD: zabbix
-  adminer:
+    volumes:
+      - ./volumes/mysql_data_dir:/var/lib/mysql/
+  pma:
     image: adminer
     restart: always
     labels:
