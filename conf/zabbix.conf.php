@@ -35,8 +35,8 @@ $DB['VAULT_KEY_FILE']		= '';
 $DB['DOUBLE_IEEE754']		= false;
 
 // Uncomment and set to desired values to override Zabbix hostname/IP and port.
-// $ZBX_SERVER			= '';
-// $ZBX_SERVER_PORT		= '';
+$ZBX_SERVER			= 'server';
+$ZBX_SERVER_PORT		= '9997';
 
 $ZBX_SERVER_NAME		= 'asd';
 

@@ -1,7 +1,7 @@
 ARG ZABBIX_BASE
-FROM maborak/${ZABBIX_BASE:-zabbix-base} AS base
+FROM ${ZABBIX_BASE:-maborak/zabbix-base} AS base
 
-FROM ubuntu:22.10
+FROM ubuntu:noble
 WORKDIR /var/lib/zabbix/
 COPY --from=base /var/lib/zabbix/ ./
 ARG DEBIAN_FRONTEND=noninteractive
@@ -26,8 +26,9 @@ RUN apt-get install -y \
     mysql-client \
     snmp-mibs-downloader \
     unixodbc
-RUN addgroup --system --gid 1995  --quiet zabbix && \
-    adduser --quiet --uid 1997 --system --ingroup zabbix --home /var/lib/zabbix --no-create-home zabbix
-USER 1997
+RUN groupadd --system --gid 1995 zabbix && \
+    useradd -r -u 1997 --home /var/lib/zabbix --gid zabbix -s /sbin/nologin zabbix
+
+    USER 1997
 EXPOSE 9997
 ENTRYPOINT ["/var/lib/zabbix/sbin/zabbix_server", "-f", "-c", "/var/lib/zabbix/etc/zabbix_server.conf"]

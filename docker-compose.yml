@@ -1,5 +1,3 @@
-version: "3"
-
 services:
   router:
     image: traefik:latest
@@ -71,6 +69,8 @@ services:
       context: ./build/zabbix-server
       args:
         ZABBIX_BASE: ${ZABBIX_BASE:-zabbix-base}
+        ZABBIX_MAJOR_VERSION: ${ZABBIX_MAJOR_VERSION:-7.0}
+        ZABBIX_MINOR_VERSION: ${ZABBIX_MINOR_VERSION:-3}
     restart: always
     volumes:
       - ./conf/zabbix_server.conf:/var/lib/zabbix/etc/zabbix_server.conf
