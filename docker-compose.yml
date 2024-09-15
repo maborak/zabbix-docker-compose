@@ -107,7 +107,7 @@ services:
       - "traefik.http.middlewares.${CONTEXT:-prometheus}zabbix_ui_http-api_headers.headers.addvaryheader=true"
       - "traefik.http.middlewares.${CONTEXT:-prometheus}zabbix_ui_http.compress=true"
     volumes:
-      - ./conf/php_extra.ini:/etc/php81/conf.d/php_extra.ini
+      - ./conf/php_extra.ini:/etc/php83/conf.d/php_extra.ini
       - ./conf/zabbix.conf.php:/var/www/html/conf/zabbix.conf.php
   db:
     env_file: .env
@@ -115,17 +115,17 @@ services:
       context: ./build/zabbix-db
       args:
         ZABBIX_BASE: ${ZABBIX_BASE:-zabbix-base}
-    command: --default-authentication-plugin=mysql_native_password --character-set-server=utf8mb4 --collation-server=utf8mb4_unicode_ci
+#    command: --default-authentication-plugin=mysql_native_password --character-set-server=utf8mb4 --collation-server=utf8mb4_unicode_ci
     restart: always
     cap_add:
       - SYS_NICE
     environment:
-      MYSQL_ROOT_PASSWORD: zabbix_root
-      MYSQL_DATABASE: zabbix
-      MYSQL_USER: zabbix
-      MYSQL_PASSWORD: zabbix
+      MARIADB_ROOT_PASSWORD: zabbix_root
+      MARIADB_DATABASE: zabbix
+      MARIADB_USER: zabbix
+      MARIADB_PASSWORD: zabbix
     volumes:
-      - ./volumes/mysql_data_dir:/var/lib/mysql/
+      - ./volumes/mysql_data_dir:/var/lib/mysql
   pma:
     image: adminer
     restart: always
