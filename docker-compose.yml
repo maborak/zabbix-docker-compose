@@ -68,9 +68,7 @@ services:
     build:
       context: ./build/zabbix-server
       args:
-        ZABBIX_BASE: ${ZABBIX_BASE:-zabbix-base}
-        ZABBIX_MAJOR_VERSION: ${ZABBIX_MAJOR_VERSION:-7.0}
-        ZABBIX_MINOR_VERSION: ${ZABBIX_MINOR_VERSION:-3}
+        ZABBIX_BASE: ${ZABBIX_BASE:-maborak/zabbix-base}
     restart: always
     volumes:
       - ./conf/zabbix_server.conf:/var/lib/zabbix/etc/zabbix_server.conf
@@ -79,7 +77,7 @@ services:
     build:
       context: ./build/zabbix-ui
       args:
-        ZABBIX_BASE: ${ZABBIX_BASE:-zabbix-base}
+        ZABBIX_BASE: ${ZABBIX_BASE:-maborak/zabbix-base}
     restart: always
     labels:
       - "traefik.server=${CONTEXT:-prometheus}"
@@ -114,7 +112,7 @@ services:
     build:
       context: ./build/zabbix-db
       args:
-        ZABBIX_BASE: ${ZABBIX_BASE:-zabbix-base}
+        ZABBIX_BASE: ${ZABBIX_BASE:-maborak/zabbix-base}
 #    command: --default-authentication-plugin=mysql_native_password --character-set-server=utf8mb4 --collation-server=utf8mb4_unicode_ci
     restart: always
     cap_add:
