@@ -20,7 +20,9 @@ RUN apt-get install -y \
     libpcre3 \
     libsnmp-dev \
     libssh2-1-dev \
-    libevent-pthreads-2.1-7 \
+    libevent-dev \
+    libevent-extra* \
+    libevent-pthreads* \
     libssl-dev \
     libxml2 \
     mysql-client \

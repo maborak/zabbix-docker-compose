@@ -1,7 +1,8 @@
 ARG ZABBIX_BASE
 FROM ${ZABBIX_BASE:-maborak/zabbix-base} AS base
 
-FROM trafex/php-nginx:latest
+# Use the trafex/php-nginx image with PHP 8.3
+FROM trafex/php-nginx:3.6.0
 WORKDIR /var/www/html
 COPY --from=base /var/lib/zabbix_ui/ ./
 USER root

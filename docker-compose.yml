@@ -5,8 +5,8 @@ services:
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock:ro
       - ./conf/traefik/letsencrypt:/letsencrypt
-      - ./logs/traefik/system.log:/system.log
-      - ./logs/traefik/access.log:/access.log
+      #- ./logs/traefik/system.log:/system.log
+      #- ./logs/traefik/access.log:/access.log
     ports:
       - "${BIND_IP:-0.0.0.0}:80:80"
       - "${BIND_IP:-0.0.0.0}:443:443"
@@ -123,7 +123,7 @@ services:
       MARIADB_USER: zabbix
       MARIADB_PASSWORD: zabbix
     volumes:
-      - ./volumes/mysql_data_dir:/var/lib/mysql
+      - db_data:/var/lib/mysql
   pma:
     image: adminer
     restart: always
@@ -154,3 +154,4 @@ services:
       - "traefik.http.middlewares.${CONTEXT:-prometheus}zabbix_pma_http.compress=true"
 volumes:
   zabbix-server-data:
+  db_data:
