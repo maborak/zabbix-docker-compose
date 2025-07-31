@@ -2,6 +2,8 @@ services:
   router:
     image: traefik:latest
     restart: always
+    networks:
+      - zabbix-network
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock:ro
       - ./conf/traefik/letsencrypt:/letsencrypt
@@ -65,15 +67,20 @@ services:
       - "traefik.http.middlewares.${CONTEXT:-prometheus}dashboard_http-auth.basicauth.users=maborak:$$apr1$$luvsw9qm$$rAuZFNPtah4SY6YkGAUMR/" #todos los signos dolar deben ser doble
   server:
     env_file: .env
+    networks:
+      - zabbix-network
     build:
       context: ./build/zabbix-server
       args:
         ZABBIX_BASE: ${ZABBIX_BASE:-maborak/zabbix-base}
     restart: always
-    volumes:
-      - ./conf/zabbix_server.conf:/var/lib/zabbix/etc/zabbix_server.conf
+    #volumes:
+    #  - ./conf/zabbix-server/zabbix_server.conf:/var/lib/zabbix/etc/zabbix_server.conf
+    #  - ./conf/zabbix-server/zabbix_agent2.conf:/var/lib/zabbix/etc/zabbix_agent2.conf
   ui:
     env_file: .env
+    networks:
+      - zabbix-network
     build:
       context: ./build/zabbix-ui
       args:
@@ -105,15 +112,18 @@ services:
       - "traefik.http.middlewares.${CONTEXT:-prometheus}zabbix_ui_http-api_headers.headers.addvaryheader=true"
       - "traefik.http.middlewares.${CONTEXT:-prometheus}zabbix_ui_http.compress=true"
     volumes:
-      - ./conf/php_extra.ini:/etc/php83/conf.d/php_extra.ini
+      - ./conf/php_extra.ini:/etc/php84/conf.d/php_extra.ini
+      #- /root/code/zabbix-docker-compose/tmp/zabbix-7.4.0/ui:/var/www/html
       - ./conf/zabbix.conf.php:/var/www/html/conf/zabbix.conf.php
   db:
     env_file: .env
+    networks:
+      - zabbix-network
     build:
       context: ./build/zabbix-db
       args:
         ZABBIX_BASE: ${ZABBIX_BASE:-maborak/zabbix-base}
-#    command: --default-authentication-plugin=mysql_native_password --character-set-server=utf8mb4 --collation-server=utf8mb4_unicode_ci
+    command: --default-authentication-plugin=mysql_native_password --character-set-server=utf8mb4 --collation-server=utf8mb4_bin
     restart: always
     cap_add:
       - SYS_NICE
@@ -127,6 +137,8 @@ services:
   pma:
     image: adminer
     restart: always
+    networks:
+      - zabbix-network
     labels:
       - "traefik.server=${CONTEXT:-prometheus}"
       - "traefik.enable=true"
@@ -155,3 +167,10 @@ services:
 volumes:
   zabbix-server-data:
   db_data:
+
+networks:
+  zabbix-network:
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 172.20.0.0/16
